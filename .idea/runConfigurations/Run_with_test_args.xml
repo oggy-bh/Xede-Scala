@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Run with test args" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="xede.Xede" />
+    <module name="xede-scala" />
+    <option name="PROGRAM_PARAMETERS" value="https://example.org/config.json File1.csv File2.csv" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="xede-scala.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
