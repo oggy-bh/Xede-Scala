@@ -39,6 +39,11 @@ object Xede extends App {
 
     val loadDefinition = read[LoadDefinition](loadDefinitionJson)
 
+    println(s"Writing:\n${dataSources.mkString("\n")}")
+    println(s"Using Configuration\n$configUrl")
+    println(s"From:\n${loadDefinition.source.accept(GetConfigurationSummaryVisitor)}")
+    println(s"To:\n${loadDefinition.target.accept(GetConfigurationSummaryVisitor)}")
+
     WriteSourceToTarget(
       loadDefinition,
       dataSources,
