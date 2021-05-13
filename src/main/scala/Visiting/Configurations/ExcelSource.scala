@@ -1,6 +1,6 @@
 package Visiting.Configurations
 
-import Visiting.Components.{SourceConfig, SourceConfigVisitor, TargetConfig}
+import Visiting.Components.{SourceConfig, SourceConfigVisitor}
 
 case class ExcelSource(excelRange: ExcelRange, hasHeader: Boolean) extends SourceConfig {
   override def accept[TOut](visitor: SourceConfigVisitor[TOut]): TOut = visitor.Visit(this)
@@ -14,7 +14,7 @@ case class ExcelSource(excelRange: ExcelRange, hasHeader: Boolean) extends Sourc
     B3: Start cell of the data. Reading will return all rows below and all columns to the right. Writing will start here and use as many columns and rows as required.
 
     B3:F35: Cell range of data. Reading will return only rows and columns in the specified range.
-            Writing will start in the first cell (B3 in this example) and use only the specified columns and rows.
+            Writing will start in the first cell (B3 in this xede-scala) and use only the specified columns and rows.
             If there are more rows or columns in the DataFrame to write, they will be truncated. Make sure this is what you want.
 
     'My Sheet'!B3:F35: Same as above, but with a specific sheet.

@@ -1,7 +1,7 @@
 package Visiting.Visitors
 
 import Visiting.Components.SourceConfigVisitor
-import Visiting.Configurations.{CsvSource, SqlServerSource, FixedWidthSource, ExcelSource}
+import Visiting.Configurations.{CsvSource, ExcelSource, FixedWidthSource, SqlServerSource}
 
 object GatherInputSourcesVisitor extends SourceConfigVisitor[Seq[String]] {
 

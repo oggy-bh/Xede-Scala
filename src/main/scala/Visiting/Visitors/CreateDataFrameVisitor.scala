@@ -1,7 +1,7 @@
 package Visiting.Visitors
 
 import Visiting.Components.SourceConfigVisitor
-import Visiting.Configurations.{CsvSource, ExcelSource, FixedWidthColumn, FixedWidthSource, SqlServerSource}
+import Visiting.Configurations._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, DataFrameReader, Row, SparkSession}

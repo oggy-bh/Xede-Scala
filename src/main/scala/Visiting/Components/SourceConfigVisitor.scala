@@ -1,6 +1,6 @@
 package Visiting.Components
 
-import Visiting.Configurations.{CsvSource, SqlServerSource, FixedWidthSource, ExcelSource}
+import Visiting.Configurations.{CsvSource, ExcelSource, FixedWidthSource, SqlServerSource}
 
 trait SourceConfigVisitor[TOut] {
   def Visit(csvConfig: CsvSource): TOut

@@ -1,7 +1,7 @@
 package Visiting.Visitors
 
 import Visiting.Components.ConfigVisitor
-import Visiting.Configurations.{CsvSource, HiveTarget, SqlServerSource, FixedWidthSource, ExcelSource}
+import Visiting.Configurations._
 
 object GetConfigurationSummaryVisitor extends ConfigVisitor[String] {
 
