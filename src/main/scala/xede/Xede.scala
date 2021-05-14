@@ -2,21 +2,18 @@ package xede
 
 import Visiting.Configurations._
 import Visiting.Visitors._
-import net.liftweb.json.Serialization.read
 import net.liftweb.json._
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json.Serialization.{read, write}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object Xede extends App {
 
+
+
+  case class Simple(one: String, two: Boolean)
+
   override def main(args: Array[String]): Unit = {
-
-    val configUrl = args.head
-    val dataSources = args.tail
-
-    val spark: SparkSession = SparkSession
-      .builder()
-      .master("local")
-      .getOrCreate()
 
     implicit val formats: AnyRef with Formats = Serialization.formats(
       ShortTypeHints(
@@ -29,6 +26,28 @@ object Xede extends App {
         )
       )
     )
+
+//    val data = LoadDefinition(
+//      source = CsvSource("|", true),
+//      target = HiveTarget("TestDb", "TestTable", raw"C:\dev\xede-scala\testdata")
+//    )
+//
+//    //val s = write(source)
+//    val t = write(data)
+//
+//    println(t)
+//
+//    return
+
+    val configUrl = args.head
+    val dataSources = args.tail
+
+    val spark: SparkSession = SparkSession
+      .builder()
+      .master("local")
+      .getOrCreate()
+
+
 
     val loadDefinitionJson = {
       val source = scala.io.Source.fromURL(configUrl)
@@ -58,7 +77,8 @@ object Xede extends App {
     val writeDataFrameFunc: DataFrame => Unit = loadDefinition.target.accept(new WriteDataFrameVisitor(spark))
 
     dataSources.par.foreach(source => {
-      writeDataFrameFunc(createDataFrameFunc(source))
+      val sourceDf = RenameColumns.rename(createDataFrameFunc(source))
+      writeDataFrameFunc(sourceDf)
     })
 
   }

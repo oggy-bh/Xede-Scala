@@ -1,0 +1,14 @@
+{
+  "source": {
+    "jsonClass": "CsvSource",
+    "delimiter": ",",
+    "hasHeader": true,
+    "encoding": "UTF-8"
+  },
+  "target": {
+    "jsonClass": "HiveTarget",
+    "hiveDbName": "TestDb",
+    "tableName": "TestTable",
+    "hiveDir": "C:\\dev\\xede-scala\\spark-warehouse\\testdb.db"
+  }
+}

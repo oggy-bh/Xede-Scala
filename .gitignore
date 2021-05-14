@@ -129,3 +129,4 @@ project/**/metals.sbt
 
 # End of https://www.toptal.com/developers/gitignore/api/scala,visualstudiocode,intellij,metals
 /target/
+spark-warehouse/

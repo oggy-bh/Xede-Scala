@@ -48,7 +48,7 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
     }
   }
 
-  final private val isSelectRegEx = raw"(?i)(?=.*\bSELECT\b)(?=.*\FROM\b).*".r
+  final private val isSelectRegEx = raw"(?i)(?=.*\bSELECT\b)(?=.*\bFROM\b).*".r
 
   final private val OLTP_JDBC_URL =
     "jdbc:sqlserver://brightoltp-prod.public.25032192a28f.database.windows.net:3342;user=sql-admin-user;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.25032192a28f.database.windows.net;loginTimeout=30;"
