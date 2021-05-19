@@ -69,8 +69,8 @@ object Xede extends App {
   }
 
    def WriteSourceToTarget(loadDefinition: LoadDefinition, dataSources: Seq[String], spark: SparkSession): Unit = {
-    val createDataFrameFunc: String => DataFrame = loadDefinition.source.accept(new CreateDataFrameVisitor(spark))
-    val writeDataFrameFunc: DataFrame => Unit = loadDefinition.target.accept(new WriteDataFrameVisitor(spark))
+    val createDataFrameFunc: String => SourceData = loadDefinition.source.accept(new CreateDataFrameVisitor(spark))
+    val writeDataFrameFunc: SourceData => Unit = loadDefinition.target.accept(new WriteDataFrameVisitor(spark))
 
     dataSources.foreach(source => {
       val sourceDf = RenameColumns.rename(createDataFrameFunc(source))

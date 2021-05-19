@@ -2,49 +2,54 @@ package Visiting.Visitors
 
 import Visiting.Components.SourceConfigVisitor
 import Visiting.Configurations._
+import org.apache.commons.io.FilenameUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, DataFrameReader, Row, SparkSession}
 
-class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[String => DataFrame] {
+case class SourceData(dataframe: Seq[DataFrame], outputFilename: Option[String] = None)
 
-  override def Visit(csvConfig: CsvSource): String => DataFrame = {
+object SourceData {
+  def apply(dataFrame: DataFrame, outputFilename: Option[String] = None): SourceData = SourceData(Seq(dataFrame))
+}
+
+class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[String => SourceData] {
+
+  override def Visit(csvConfig: CsvSource): String => SourceData = {
     val optionedReader: DataFrameReader = spark.read
-      .option("ignoreLeadingWhiteSpace", true) // you need this
-      .option("ignoreTrailingWhiteSpace", true) // and this
-      .option("delimiter", csvConfig.delimiter.toString())
+      .option("ignoreLeadingWhiteSpace", value = true) // you need this
+      .option("ignoreTrailingWhiteSpace", value = true) // and this
+      .option("delimiter", csvConfig.delimiter)
       .option("header", csvConfig.hasHeader)
-      .option("inferSchema", false)
+      .option("inferSchema", value = false)
       .option("encoding", csvConfig.encoding)
 
-    if (csvConfig.skipLines.isEmpty) { filename =>
-      optionedReader.csv(filename)
-    } else { filename =>
-      {
+    filename => {
+
+      val outputFilename = Some(FilenameUtils.getBaseName(filename))
+
+      csvConfig.skipLines.fold(SourceData(optionedReader.csv(filename)))(skipLines => {
         import spark.implicits._
         val rdd = spark.sparkContext.textFile(filename)
-        val rddSkippedLines = rdd.mapPartitionsWithIndex((partitionIndex, r) => if (partitionIndex == 0) r.drop(csvConfig.skipLines.get) else r)
+        val rddSkippedLines = rdd.mapPartitionsWithIndex((partitionIndex, r) => if (partitionIndex == 0) r.drop(skipLines) else r)
         val ds = spark.createDataset(rddSkippedLines)
-        optionedReader.csv(ds)
-      }
+        SourceData(optionedReader.csv(ds), outputFilename)
+      })
     }
   }
 
-  override def Visit(jdbcConfig: SqlServerSource): String => DataFrame = {
+  override def Visit(jdbcConfig: SqlServerSource): String => SourceData = {
     val jdbcUrl = makeJDBCUrl(jdbcConfig.database)
 
-    var optionedReader = spark.read
+    val optionedReader = spark.read
       .format("jdbc")
       .option("url", jdbcUrl)
       .option("numPartitions", jdbcConfig.numPartitions)
       .option("fetchsize", jdbcConfig.fetchSize)
 
-    (tableOrQuery) => {
-      if (isSelectRegEx.findFirstIn(tableOrQuery).isDefined) {
-        optionedReader.option("query", tableOrQuery).load()
-      } else {
-        optionedReader.option("dbtable", tableOrQuery).load()
-      }
+    tableOrQuery => {
+      val optionKey = isSelectRegEx.findFirstIn(tableOrQuery).fold("dbtable")(_ => "query")
+      SourceData(optionedReader.option(optionKey, tableOrQuery).load())
     }
   }
 
@@ -59,14 +64,16 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
     jdbcUrl
   }
 
-  override def Visit(fixedWidthConfig: FixedWidthSource): String => DataFrame = { filename =>
+  override def Visit(fixedWidthConfig: FixedWidthSource): String => SourceData = { filename =>
     val rdd: RDD[String] = spark.sparkContext.textFile(filename)
 
     val fields = fixedWidthConfig.columns.map(fwc => StructField(fwc.name, StringType, nullable = true))
 
     val schema = StructType(fields)
 
-    spark.createDataFrame(rdd.map { line => splitStringIntoRow(fixedWidthConfig.columns, line) }, schema)
+    SourceData(
+      spark.createDataFrame(rdd.map { line => splitStringIntoRow(fixedWidthConfig.columns, line) }, schema)
+    )
   }
 
   final private def splitStringIntoRow(list: Seq[FixedWidthColumn], str: String): Row = {
@@ -96,8 +103,9 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
     Row.fromSeq(result.reverse)
   }
 
-  override def Visit(excelConfig: ExcelSource): String => DataFrame = { filename =>
-    spark.read
+  override def Visit(excelConfig: ExcelSource): String => SourceData = { filename =>
+    SourceData(
+      spark.read
       .format("com.crealytics.spark.excel")
       .option("dataAddress", excelConfig.excelRange.GetDataAddress()) // Optional, default: "A1"//    .option("dataAddress", "'My Sheet'!B3:C35") // Optional, default: "A1"
       .option("header", excelConfig.hasHeader) // Required
@@ -110,6 +118,7 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
       .option("maxRowsInMemory", 20) // Optional, default None. If set, uses a streaming reader which can help with big files
       .option("excerptSize", 10) // Optional, default: 10. If set and if schema inferred, number of rows to infer schema from//    .option("workbookPassword", "pass") // Optional, default None. Requires unlimited strength JCE for older JVMs//    .schema(myCustomSchema) // Optional, default: Either inferred schema, or all columns are Strings
       .load(filename)
+    )
   }
 
 }

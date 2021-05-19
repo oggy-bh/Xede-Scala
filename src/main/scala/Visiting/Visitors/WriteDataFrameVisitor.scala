@@ -7,7 +7,7 @@ import Visiting.Components.TargetConfigVisitor
 import Visiting.Configurations.{HiveTarget, ParquetTarget}
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 
-class WriteDataFrameVisitor(val spark: SparkSession) extends TargetConfigVisitor[DataFrame => Unit] {
+class WriteDataFrameVisitor(val spark: SparkSession) extends TargetConfigVisitor[SourceData => Unit] {
   override def Visit(config: HiveTarget): DataFrame => Unit = { (df) =>
     spark.sql(s"CREATE DATABASE IF NOT EXISTS ${config.hiveDbName} ;")
     spark.sql(s"DROP TABLE IF EXISTS ${config.hiveDbName}.${config.tableName}")
@@ -40,7 +40,7 @@ class WriteDataFrameVisitor(val spark: SparkSession) extends TargetConfigVisitor
     }
   }
 
-  override def Visit(config: ParquetTarget): DataFrame => Unit = { (df) =>
+  override def Visit(config: ParquetTarget): SourceData => Unit = { df =>
     val format = DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm_ss") // todo: what's the convention here?
     val parquetDir = s"${config.parquetDir}\\${LocalDateTime.now.format(format)}\\${config.parquetFilename}.parquet"
 
