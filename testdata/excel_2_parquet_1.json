@@ -1,0 +1,12 @@
+{
+  "source": {
+    "jsonClass": "ExcelSource",
+    "startCell": "A0",
+    "hasHeader": true
+  },
+  "target": {
+    "jsonClass": "ParquetTarget",
+    "parquetDir": "C:\\dev\\xede-scala\\parquet_output",
+    "parquetFilename": "myFile"
+  }
+}

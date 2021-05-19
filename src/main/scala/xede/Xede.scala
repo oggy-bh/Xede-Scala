@@ -14,7 +14,6 @@ object Xede extends App {
   case class Simple(one: String, two: Boolean)
 
   override def main(args: Array[String]): Unit = {
-
     implicit val formats: AnyRef with Formats = Serialization.formats(
       ShortTypeHints(
         List(
@@ -22,7 +21,8 @@ object Xede extends App {
           classOf[ExcelSource],
           classOf[FixedWidthSource],
           classOf[SqlServerSource],
-          classOf[HiveTarget]
+          classOf[HiveTarget],
+          classOf[ParquetTarget]
         )
       )
     )
@@ -47,8 +47,6 @@ object Xede extends App {
       .master("local")
       .getOrCreate()
 
-
-
     val loadDefinitionJson = {
       val source = scala.io.Source.fromURL(configUrl)
       val json = source.mkString
@@ -71,12 +69,10 @@ object Xede extends App {
   }
 
    def WriteSourceToTarget(loadDefinition: LoadDefinition, dataSources: Seq[String], spark: SparkSession): Unit = {
-
     val createDataFrameFunc: String => DataFrame = loadDefinition.source.accept(new CreateDataFrameVisitor(spark))
-
     val writeDataFrameFunc: DataFrame => Unit = loadDefinition.target.accept(new WriteDataFrameVisitor(spark))
 
-    dataSources.par.foreach(source => {
+    dataSources.foreach(source => {
       val sourceDf = RenameColumns.rename(createDataFrameFunc(source))
       writeDataFrameFunc(sourceDf)
     })
