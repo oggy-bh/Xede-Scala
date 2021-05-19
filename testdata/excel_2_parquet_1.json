@@ -1,8 +1,15 @@
 {
   "source": {
     "jsonClass": "ExcelSource",
-    "startCell": "A0",
-    "hasHeader": true
+    "excelRange": {
+      "startCell": "A1"
+    },
+    "hasHeader": true,
+    "headerColumns": [
+      "first",
+      "last",
+      "birthday"
+    ]
   },
   "target": {
     "jsonClass": "ParquetTarget",

@@ -5,6 +5,7 @@ import Visiting.Configurations._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, DataFrameReader, Row, SparkSession}
+import xede.RenameColumns
 
 class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[String => DataFrame] {
 
@@ -16,16 +17,29 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
       .option("header", csvConfig.hasHeader)
       .option("inferSchema", false)
       .option("encoding", csvConfig.encoding)
+    val overwriteColNames = csvConfig.headerColumns.isDefined && csvConfig.headerColumns.nonEmpty
 
     if (csvConfig.skipLines.isEmpty) { filename =>
-      optionedReader.csv(filename)
+      val df = optionedReader.csv(filename)
+
+      if(overwriteColNames) {
+        RenameColumns.rename(df, csvConfig.headerColumns.get)
+      } else {
+        df
+      }
     } else { filename =>
       {
         import spark.implicits._
         val rdd = spark.sparkContext.textFile(filename)
         val rddSkippedLines = rdd.mapPartitionsWithIndex((partitionIndex, r) => if (partitionIndex == 0) r.drop(csvConfig.skipLines.get) else r)
         val ds = spark.createDataset(rddSkippedLines)
-        optionedReader.csv(ds)
+        val df = optionedReader.csv(ds)
+
+        if(overwriteColNames) {
+          RenameColumns.rename(df, csvConfig.headerColumns.get)
+        } else {
+          df
+        }
       }
     }
   }
@@ -97,7 +111,7 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
   }
 
   override def Visit(excelConfig: ExcelSource): String => DataFrame = { filename =>
-    spark.read
+    val df = spark.read
       .format("com.crealytics.spark.excel")
       .option("dataAddress", excelConfig.excelRange.GetDataAddress()) // Optional, default: "A1"//    .option("dataAddress", "'My Sheet'!B3:C35") // Optional, default: "A1"
       .option("header", excelConfig.hasHeader) // Required
@@ -110,6 +124,11 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
       .option("maxRowsInMemory", 20) // Optional, default None. If set, uses a streaming reader which can help with big files
       .option("excerptSize", 10) // Optional, default: 10. If set and if schema inferred, number of rows to infer schema from//    .option("workbookPassword", "pass") // Optional, default None. Requires unlimited strength JCE for older JVMs//    .schema(myCustomSchema) // Optional, default: Either inferred schema, or all columns are Strings
       .load(filename)
-  }
 
+    if(excelConfig.headerColumns.isDefined && excelConfig.headerColumns.nonEmpty) {
+      RenameColumns.rename(df, excelConfig.headerColumns.get)
+    } else {
+      df
+    }
+  }
 }

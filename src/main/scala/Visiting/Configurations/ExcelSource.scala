@@ -2,7 +2,7 @@ package Visiting.Configurations
 
 import Visiting.Components.{SourceConfig, SourceConfigVisitor}
 
-case class ExcelSource(excelRange: ExcelRange, hasHeader: Boolean) extends SourceConfig {
+case class ExcelSource(excelRange: ExcelRange, hasHeader: Boolean, headerColumns: Option[List[String]]) extends SourceConfig {
   override def accept[TOut](visitor: SourceConfigVisitor[TOut]): TOut = visitor.Visit(this)
 }
 
