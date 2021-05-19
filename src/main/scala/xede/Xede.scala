@@ -1,6 +1,7 @@
 package xede
 
 import Visiting.Configurations._
+import Visiting.Utils.AppendLineage
 import Visiting.Visitors._
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
@@ -73,8 +74,10 @@ object Xede extends App {
     val writeDataFrameFunc: DataFrame => Unit = loadDefinition.target.accept(new WriteDataFrameVisitor(spark))
 
     dataSources.foreach(source => {
-      val sourceDf = RenameColumns.rename(createDataFrameFunc(source))
-      writeDataFrameFunc(sourceDf)
+      val sourceDf = createDataFrameFunc(source)
+      val dfRenamed = RenameColumns.rename(sourceDf)
+      val dfWithLineage = AppendLineage.appendLineageToDf(source, dfRenamed)
+      writeDataFrameFunc(dfWithLineage)
     })
 
   }
