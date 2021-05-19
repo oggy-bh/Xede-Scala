@@ -17,48 +17,33 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
       .option("header", csvConfig.hasHeader)
       .option("inferSchema", false)
       .option("encoding", csvConfig.encoding)
-    val overwriteColNames = csvConfig.headerColumns.isDefined && csvConfig.headerColumns.nonEmpty
 
-    if (csvConfig.skipLines.isEmpty) { filename =>
-      val df = optionedReader.csv(filename)
+    filename => {
 
-      if(overwriteColNames) {
-        RenameColumns.rename(df, csvConfig.headerColumns.get)
-      } else {
-        df
-      }
-    } else { filename =>
-      {
+      val df = csvConfig.skipLines.fold(optionedReader.csv(filename))(skipLines => {
         import spark.implicits._
         val rdd = spark.sparkContext.textFile(filename)
-        val rddSkippedLines = rdd.mapPartitionsWithIndex((partitionIndex, r) => if (partitionIndex == 0) r.drop(csvConfig.skipLines.get) else r)
+        val rddSkippedLines = rdd.mapPartitionsWithIndex((partitionIndex, r) => if (partitionIndex == 0) r.drop(skipLines) else r)
         val ds = spark.createDataset(rddSkippedLines)
-        val df = optionedReader.csv(ds)
+        optionedReader.csv(ds)
+      })
 
-        if(overwriteColNames) {
-          RenameColumns.rename(df, csvConfig.headerColumns.get)
-        } else {
-          df
-        }
-      }
+      csvConfig.headerColumns.fold(df)(newNames => RenameColumns.rename(df, newNames))
     }
   }
 
   override def Visit(jdbcConfig: SqlServerSource): String => DataFrame = {
     val jdbcUrl = makeJDBCUrl(jdbcConfig.database)
 
-    var optionedReader = spark.read
+    val optionedReader = spark.read
       .format("jdbc")
       .option("url", jdbcUrl)
       .option("numPartitions", jdbcConfig.numPartitions)
       .option("fetchsize", jdbcConfig.fetchSize)
 
-    (tableOrQuery) => {
-      if (isSelectRegEx.findFirstIn(tableOrQuery).isDefined) {
-        optionedReader.option("query", tableOrQuery).load()
-      } else {
-        optionedReader.option("dbtable", tableOrQuery).load()
-      }
+    tableOrQuery => {
+      val optionKey = isSelectRegEx.findFirstIn(tableOrQuery).fold("dbtable")(_ => "query")
+      optionedReader.option(optionKey, tableOrQuery).load()
     }
   }
 
