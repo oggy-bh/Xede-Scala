@@ -28,7 +28,9 @@ case class ExcelSource(excelRange: ExcelRange, hasHeader: Boolean) extends Sourc
  */
 case class ExcelRange(sheet: Option[String], startCell: String, endCell: Option[String]) {
   def GetDataAddress(): String = {
-    val dataAddress = sheet.fold(startCell)(s => s"'$s'!$startCell")
-    endCell.fold(dataAddress)(e => dataAddress + s":$e")
+    val sheetString = if(sheet.isDefined && sheet.get != "") s"'${sheet.get}'!" else ""
+    val endString = if(endCell.isDefined && endCell.get != "") s":${endCell.get}" else ""
+
+    sheetString + startCell + endString // <sheet>!<start>:<end>
   }
 }

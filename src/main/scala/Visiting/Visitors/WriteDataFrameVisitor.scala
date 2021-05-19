@@ -1,7 +1,10 @@
 package Visiting.Visitors
 
+import java.time.{LocalDateTime}
+import java.time.format.DateTimeFormatter
+
 import Visiting.Components.TargetConfigVisitor
-import Visiting.Configurations.HiveTarget
+import Visiting.Configurations.{HiveTarget, ParquetTarget}
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 
 class WriteDataFrameVisitor(val spark: SparkSession) extends TargetConfigVisitor[DataFrame => Unit] {
@@ -35,5 +38,15 @@ class WriteDataFrameVisitor(val spark: SparkSession) extends TargetConfigVisitor
       matDf.createOrReplaceTempView(config.tableName)
       spark.sql(s"CREATE TABLE IF NOT EXISTS ${config.hiveDbName}.${config.tableName} USING PARQUET LOCATION '${parquetDir}' AS $sqlString")
     }
+  }
+
+  override def Visit(config: ParquetTarget): DataFrame => Unit = { (df) =>
+    val format = DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm_ss") // todo: what's the convention here?
+    val parquetDir = s"${config.parquetDir}\\${LocalDateTime.now.format(format)}\\${config.parquetFilename}.parquet"
+
+    df.write
+      .mode(SaveMode.Overwrite)
+      .option("compression", "gzip")
+      .parquet(parquetDir)
   }
 }

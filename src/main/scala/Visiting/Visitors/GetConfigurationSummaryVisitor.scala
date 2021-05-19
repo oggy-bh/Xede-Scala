@@ -11,6 +11,8 @@ object GetConfigurationSummaryVisitor extends ConfigVisitor[String] {
 
   override def Visit(hiveTargetConfig: HiveTarget): String = s"Some hive target of death"
 
+  override def Visit(parquetTargetConfig: ParquetTarget): String = s"ParquetDir=${parquetTargetConfig.parquetDir}, ParquetFilename=${parquetTargetConfig.parquetFilename}"
+
   override def Visit(fixedWidthConfig: FixedWidthSource): String = s"Columns=${fixedWidthConfig.columns.size}, "
 
   override def Visit(excelConfig: ExcelSource): String = s"DataAddress=${excelConfig.excelRange.GetDataAddress()}, HasHeader=${excelConfig.hasHeader}"
