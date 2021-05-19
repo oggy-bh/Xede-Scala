@@ -42,7 +42,7 @@ class WriteDataFrameVisitor(val spark: SparkSession) extends TargetConfigVisitor
 
   override def Visit(config: ParquetTarget): SourceData => Unit = { df =>
     val format = DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm_ss") // todo: what's the convention here?
-    val parquetDir = s"${config.parquetDir}\\${LocalDateTime.now.format(format)}\\${config.parquetFilename}.parquet"
+    val parquetDir = s"${config.parquetDir}\\${LocalDateTime.now.format(format)}\\${df.outputFilename}.parquet"
 
     df.write
       .mode(SaveMode.Overwrite)

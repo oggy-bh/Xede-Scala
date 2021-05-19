@@ -7,10 +7,12 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, DataFrameReader, Row, SparkSession}
 
-case class SourceData(dataframe: Seq[DataFrame], outputFilename: Option[String] = None)
+case class SourceData(dataframe: Seq[DataframeMetadata])
+
+case class DataframeMetadata(dataFrame: DataFrame, tokens: Map[String, String])
 
 object SourceData {
-  def apply(dataFrame: DataFrame, outputFilename: Option[String] = None): SourceData = SourceData(Seq(dataFrame))
+  def apply(dataFrame: DataFrame, filename: String): SourceData = SourceData(Seq(DataframeMetadata(dataFrame, Map("sourceName" -> filename))))
 }
 
 class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[String => SourceData] {
@@ -26,9 +28,9 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
 
     filename => {
 
-      val outputFilename = Some(FilenameUtils.getBaseName(filename))
+      val outputFilename = FilenameUtils.getBaseName(filename)
 
-      csvConfig.skipLines.fold(SourceData(optionedReader.csv(filename)))(skipLines => {
+      csvConfig.skipLines.fold(SourceData(optionedReader.csv(filename), outputFilename))(skipLines => {
         import spark.implicits._
         val rdd = spark.sparkContext.textFile(filename)
         val rddSkippedLines = rdd.mapPartitionsWithIndex((partitionIndex, r) => if (partitionIndex == 0) r.drop(skipLines) else r)
@@ -48,8 +50,8 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
       .option("fetchsize", jdbcConfig.fetchSize)
 
     tableOrQuery => {
-      val optionKey = isSelectRegEx.findFirstIn(tableOrQuery).fold("dbtable")(_ => "query")
-      SourceData(optionedReader.option(optionKey, tableOrQuery).load())
+      val (optionKey, filename) = isSelectRegEx.findFirstIn(tableOrQuery).fold(("dbtable", tableOrQuery))(_ => ("query", "raw_sql"))
+      SourceData(optionedReader.option(optionKey, tableOrQuery).load(), filename)
     }
   }
 
@@ -72,7 +74,8 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
     val schema = StructType(fields)
 
     SourceData(
-      spark.createDataFrame(rdd.map { line => splitStringIntoRow(fixedWidthConfig.columns, line) }, schema)
+      spark.createDataFrame(rdd.map { line => splitStringIntoRow(fixedWidthConfig.columns, line) }, schema),
+      FilenameUtils.getBaseName(filename)
     )
   }
 
@@ -117,7 +120,8 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
       .option("timestampFormat", "MM-dd-yyyy HH:mm:ss") // Optional, default: yyyy-mm-dd hh:mm:ss[.fffffffff]
       .option("maxRowsInMemory", 20) // Optional, default None. If set, uses a streaming reader which can help with big files
       .option("excerptSize", 10) // Optional, default: 10. If set and if schema inferred, number of rows to infer schema from//    .option("workbookPassword", "pass") // Optional, default None. Requires unlimited strength JCE for older JVMs//    .schema(myCustomSchema) // Optional, default: Either inferred schema, or all columns are Strings
-      .load(filename)
+      .load(filename),
+      FilenameUtils.getBaseName(filename)
     )
   }
 

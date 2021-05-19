@@ -7,6 +7,10 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Serialization.{read, write}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.UUID
+
 object Xede extends App {
 
 
@@ -73,9 +77,31 @@ object Xede extends App {
     val writeDataFrameFunc: SourceData => Unit = loadDefinition.target.accept(new WriteDataFrameVisitor(spark))
 
     dataSources.foreach(source => {
-      val sourceDf = RenameColumns.rename(createDataFrameFunc(source))
-      writeDataFrameFunc(sourceDf)
+      val sourceData: SourceData = createDataFrameFunc(source)
+
+      val configTokens: Map[String, String] = loadDefinition.source.accept(AddTokensVisitor) ++
+        loadDefinition.target.accept(AddTokensVisitor) ++
+        CreateRuntimeTokens
+
+      sour
+
+//      writeDataFrameFunc(sourceData.copy(dataframe = sourceData.dataframe.map(RenameColumns.rename)))
     })
 
   }
+
+  val dateTime = DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm_ss")
+  val date = DateTimeFormatter.ofPattern("yyyy_MM_dd")
+  val time = DateTimeFormatter.ofPattern("HH_mm_ss")
+
+  def CreateRuntimeTokens(): Map[String, String] = Map(
+    "datetime" -> LocalDateTime.now.format(dateTime),
+    "date" -> LocalDateTime.now.format(date),
+    "time" -> LocalDateTime.now.format(time),
+    "guid" -> UUID.randomUUID().toString,
+    // examples we might want
+    "environment" -> "dev",
+    "cluster" -> "some-cluster",
+    "tpid" -> "C0011234"
+  )
 }

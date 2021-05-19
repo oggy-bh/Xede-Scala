@@ -11,7 +11,7 @@ object GetConfigurationSummaryVisitor extends ConfigVisitor[String] {
 
   override def Visit(hiveTargetConfig: HiveTarget): String = s"Some hive target of death"
 
-  override def Visit(parquetTargetConfig: ParquetTarget): String = s"ParquetDir=${parquetTargetConfig.parquetDir}, ParquetFilename=${parquetTargetConfig.parquetFilename}"
+  override def Visit(parquetTargetConfig: ParquetTarget): String = s"ParquetDir=${parquetTargetConfig.parquetDir}, SaveMode=${parquetTargetConfig.saveMode}"
 
   override def Visit(fixedWidthConfig: FixedWidthSource): String = s"Columns=${fixedWidthConfig.columns.size}, "
 
