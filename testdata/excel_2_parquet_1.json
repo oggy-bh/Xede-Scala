@@ -1,9 +1,16 @@
 {
   "source": {
     "jsonClass": "ExcelSource",
-    "excelRange": {
-      "startCell": "A1"
-    },
+    "excelRange": [
+      {
+        "sheet": "Sheet1",
+        "startCell": "A1"
+      },
+      {
+        "sheet": "Sheet2",
+        "startCell": "A1"
+      }
+    ],
     "hasHeader": true,
     "headerColumns": [
       "first",

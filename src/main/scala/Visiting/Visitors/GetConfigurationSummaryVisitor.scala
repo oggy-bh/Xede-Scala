@@ -15,5 +15,5 @@ object GetConfigurationSummaryVisitor extends ConfigVisitor[String] {
 
   override def Visit(fixedWidthConfig: FixedWidthSource): String = s"Columns=${fixedWidthConfig.columns.size}, "
 
-  override def Visit(excelConfig: ExcelSource): String = s"DataAddress=${excelConfig.excelRange.GetDataAddress()}, HasHeader=${excelConfig.hasHeader}"
+  override def Visit(excelConfig: ExcelSource): String = s"DataAddress=${excelConfig.excelRange.map(_.GetDataAddress()).mkString(", ")}, HasHeader=${excelConfig.hasHeader}"
 }
