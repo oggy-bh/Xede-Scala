@@ -110,10 +110,6 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
       .option("excerptSize", 10) // Optional, default: 10. If set and if schema inferred, number of rows to infer schema from//    .option("workbookPassword", "pass") // Optional, default None. Requires unlimited strength JCE for older JVMs//    .schema(myCustomSchema) // Optional, default: Either inferred schema, or all columns are Strings
       .load(filename)
 
-    if(excelConfig.headerColumns.isDefined && excelConfig.headerColumns.nonEmpty) {
-      RenameColumns.rename(df, excelConfig.headerColumns.get)
-    } else {
-      df
-    }
+    excelConfig.headerColumns.fold(df)(newNames => RenameColumns.rename(df, newNames))
   }
 }
