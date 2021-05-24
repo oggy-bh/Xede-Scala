@@ -2,7 +2,7 @@ package Visiting.Configurations
 
 import Visiting.Components.{SourceConfig, SourceConfigVisitor}
 
-case class ExcelSource(excelRange: ExcelRange, hasHeader: Boolean) extends SourceConfig {
+case class ExcelSource(excelRange: Seq[ExcelRange], hasHeader: Boolean, headerColumns: Option[List[String]]) extends SourceConfig {
   override def accept[TOut](visitor: SourceConfigVisitor[TOut]): TOut = visitor.Visit(this)
 }
 
@@ -26,11 +26,8 @@ case class ExcelSource(excelRange: ExcelRange, hasHeader: Boolean) extends Sourc
  * @param startCell
  * @param endCell
  */
-case class ExcelRange(sheet: Option[String], startCell: String, endCell: Option[String]) {
+case class ExcelRange(sheet: Option[String], startCell: String = "A1", endCell: Option[String]) {
   def GetDataAddress(): String = {
-    val sheetString = if(sheet.isDefined && sheet.get != "") s"'${sheet.get}'!" else ""
-    val endString = if(endCell.isDefined && endCell.get != "") s":${endCell.get}" else ""
-
-    sheetString + startCell + endString // <sheet>!<start>:<end>
+    sheet.fold("")(x => s"'$x'!") + startCell + endCell.fold("")(x => s":$x") // <sheet>!<start>:<end>
   }
 }
