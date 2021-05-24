@@ -10,12 +10,16 @@ object AppendLineage {
   def appendLineageToDf(source: String, df: DataFrame) = {
     val encoder = java.security.MessageDigest.getInstance("SHA1")
     val hashCode = BigInt(1, encoder.digest(source.getBytes())).toString(36).toUpperCase
+
     df
-      .withColumn("meta_lineage_id", lit(hashCode))
-      .withColumn("meta_source_system_name", lit("adhoc"))
-      .withColumn("meta_source_name", lit(source))
-      .withColumn("meta_lineage_datetime", lit(new Date().toString))
-      .withColumn("meta_provenance_id", lit("rawToSource"))
-      .withColumn("meta_provenance_version", lit("1.0.0-SNAPSHOT"))
+      .select(
+        col("*"),
+        lit(hashCode).as("meta_lineage_id"),
+        lit("adhoc").as("meta_source_system_name"),
+        lit(source).as("meta_source_name"),
+        lit(new Date().toString).as("meta_lineage_datetime"),
+        lit("rawToSource").as("meta_provenance_id"),
+        lit("1.0.0-SNAPSHOT").as("meta_provenance_version")
+    )
   }
 }
