@@ -9,6 +9,14 @@ object RenameColumns {
     dataFrame.select(renamedColumns:_*)
   }
 
+  def rename(dataFrame: DataFrame, columnNames: Seq[String]): DataFrame = {
+    if(dataFrame.columns.length != columnNames.length){
+      throw new IllegalArgumentException(s"Column name overrides not equal to number of dataframe columns. columns=${columnNames} dataframe=${dataFrame.schema}")
+    }
+
+    dataFrame.toDF(columnNames:_*)
+  }
+
   private def transformColumnName(columnName: String): String = {
     var col=columnName.trim.toLowerCase()
       .replace('\\', '_')

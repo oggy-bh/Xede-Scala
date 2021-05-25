@@ -7,6 +7,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{Column, DataFrame, DataFrameReader, Row, SparkSession}
+import xede.RenameColumns
 
 import scala.collection.immutable
 
@@ -40,6 +41,8 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
         val ds = spark.createDataset(rddSkippedLines)
         SourceData(optionedReader.csv(ds), outputFilename)
       })
+
+      //!!incorp this above!! csvConfig.headerColumns.fold(df)(newNames => RenameColumns.rename(df, newNames))
     }
   }
 
@@ -53,7 +56,7 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
       .option("fetchsize", jdbcConfig.fetchSize)
 
     tableOrQuery => {
-      val (optionKey, filename) = isSelectRegEx.findFirstIn(tableOrQuery).fold(("dbtable", tableOrQuery))(_ => ("query", "raw_sql"))
+      val (optionKey, filename) = isSelectRegEx.findFirstIn(tableOrQuery).fold(("dbtable", tableOrQuery))(_ => ("query", "raw_sql_query"))
       SourceData(optionedReader.option(optionKey, tableOrQuery).load(), filename)
     }
   }
@@ -110,24 +113,25 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
   }
 
   override def Visit(excelConfig: ExcelSource): String => SourceData = { filename =>
-    SourceData(
-      spark.read
+
+    val commonDf = spark.read
       .format("com.crealytics.spark.excel")
-      .option("dataAddress", excelConfig.excelRange.GetDataAddress()) // Optional, default: "A1"//    .option("dataAddress", "'My Sheet'!B3:C35") // Optional, default: "A1"
       .option("header", excelConfig.hasHeader) // Required
       .option("treatEmptyValuesAsNulls", "false") // Optional, default: true
       .option("setErrorCellsToFallbackValues", "true") // Optional, default: false, where errors will be converted to null. If true, any ERROR cell values (e.g. #N/A) will be converted to the zero values of the column's data type.
       .option("usePlainNumberFormat", "false") // Optional, default: false, If true, format the cells without rounding and scientific notations
       .option("inferSchema", "false") // Optional, default: false
-      //.option("addColorColumns", "false") // Optional, default: false
       .option("timestampFormat", "MM-dd-yyyy HH:mm:ss") // Optional, default: yyyy-mm-dd hh:mm:ss[.fffffffff]
       .option("maxRowsInMemory", 20) // Optional, default None. If set, uses a streaming reader which can help with big files
       .option("excerptSize", 10) // Optional, default: 10. If set and if schema inferred, number of rows to infer schema from//    .option("workbookPassword", "pass") // Optional, default None. Requires unlimited strength JCE for older JVMs//    .schema(myCustomSchema) // Optional, default: Either inferred schema, or all columns are Strings
-      .load(filename),
-      FilenameUtils.getBaseName(filename)
+
+    SourceData(
+      excelConfig.excelRange.map(range => DataframeMetadata(
+          commonDf.option("dataAddress", range.GetDataAddress()).load(filename),
+          Map("sourceName" -> filename, "sheet" -> range.sheet.getOrElse("first_sheet"), "startCell" -> range.startCell, "endCell" -> range.endCell.getOrElse("unbound")))
+      )
     )
   }
-
   override def Visit(headerFooterConfig: HeaderFooterSource): String => SourceData = {
     fileOrDir => {
       val typeToColumnMap = headerFooterConfig.types
