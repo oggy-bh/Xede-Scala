@@ -1,7 +1,7 @@
 package Visiting.Visitors
 
 import Visiting.Components.SourceConfigVisitor
-import Visiting.Configurations.{CsvSource, ExcelSource, FixedWidthSource, SqlServerSource}
+import Visiting.Configurations.{CsvSource, ExcelSource, FixedWidthSource, HeaderFooterSource, SqlServerSource}
 
 object GatherInputSourcesVisitor extends SourceConfigVisitor[Seq[String]] {
 
@@ -12,4 +12,6 @@ object GatherInputSourcesVisitor extends SourceConfigVisitor[Seq[String]] {
   override def Visit(fixedWidthConfig: FixedWidthSource): Seq[String] = Seq.empty
 
   override def Visit(excelConfig: ExcelSource): Seq[String] = Seq.empty
+
+  override def Visit(headerFooterConfig: HeaderFooterSource): Seq[String] = Seq.empty
 }

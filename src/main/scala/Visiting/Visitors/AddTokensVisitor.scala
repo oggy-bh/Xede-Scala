@@ -1,7 +1,7 @@
 package Visiting.Visitors
 
 import Visiting.Components.ConfigVisitor
-import Visiting.Configurations.{CsvSource, ExcelSource, FixedWidthSource, HiveTarget, ParquetTarget, SqlServerSource}
+import Visiting.Configurations.{CsvSource, ExcelSource, FixedWidthSource, HeaderFooterSource, HiveTarget, ParquetTarget, SqlServerSource}
 
 object AddTokensVisitor extends ConfigVisitor[Map[String, String]] {
   override def Visit(hiveConfig: HiveTarget): Map[String, String] = Map(
@@ -11,7 +11,10 @@ object AddTokensVisitor extends ConfigVisitor[Map[String, String]] {
     "tableName" -> hiveConfig.tableName
   )
 
-  override def Visit(parquetConfig: ParquetTarget): Map[String, String] = ???
+  override def Visit(parquetConfig: ParquetTarget): Map[String, String] = Map(
+    "saveMode" -> parquetConfig.saveMode.toString,
+    "parquetDir" -> parquetConfig.parquetDir
+  )
 
   override def Visit(csvConfig: CsvSource): Map[String, String] = ???
 
@@ -20,4 +23,9 @@ object AddTokensVisitor extends ConfigVisitor[Map[String, String]] {
   override def Visit(fixedWidthConfig: FixedWidthSource): Map[String, String] = ???
 
   override def Visit(excelConfig: ExcelSource): Map[String, String] = ???
+
+  override def Visit(headerFooterConfig: HeaderFooterSource): Map[String, String] = Map(
+    "delimiterIndex" -> headerFooterConfig.delimiterIndex.toString,
+    "delimiterWidth" -> headerFooterConfig.delimiterWidth.toString
+  )
 }

@@ -1,5 +1,4 @@
 package Visiting.Components
-
 trait TargetConfig {
   private var source: Option[SourceConfig] = None
   def setSource(source: SourceConfig): Unit = this.source = Some(source)

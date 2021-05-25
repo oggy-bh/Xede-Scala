@@ -1,0 +1,46 @@
+{
+  "source": {
+    "jsonClass": "HeaderFooterSource",
+    "delimiterIndex": 6,
+    "delimiterWidth": 1,
+    "types": [
+      {
+        "delimiterValue": "H",
+        "columns": [
+          { "name": "contract_number", "width": 5 },
+          { "name": "record_identification_code", "width": 1 },
+          { "name": "contract_name", "width": 50 },
+          { "name": "payment_cycle_date", "width": 6 },
+          { "name": "run_date", "width": 8 },
+          { "name": "filler_6", "width": 180 }
+        ]
+      },
+      {
+        "delimiterValue": "C",
+        "columns": [
+          { "name": "contract_number", "width": 5 },
+          { "name": "record_identification_code", "width": 1 },
+          { "name": "table_id_number", "width": 1 },
+          { "name": "adjustment_reason_code", "width": 2 },
+          { "name": "part_a_total_members", "width": 9 },
+          { "name": "part_b_total_members", "width": 9 },
+          { "name": "part_d_total_members", "width": 9 },
+          { "name": "part_a_payment_amount", "width": 15 },
+          { "name": "part_b_payment_amount", "width": 15 },
+          { "name": "part_d_payment_amount", "width": 15 },
+          { "name": "coverage_gap_discount_amount", "width": 15 },
+          { "name": "total_payment", "width": 15 },
+          { "name": "filler_13", "width": 139 }
+        ]
+      }
+    ]
+  },
+  "target": {
+    "jsonClass": "ParquetTarget",
+    "parquetDir": "C:\\dev\\testdata\\xede-output",
+    "saveMode": 0,
+    "options": {}
+  },
+  "maxDegreeOfParallelism": 1,
+  "outputMask": "{baseName}_{type}"
+}

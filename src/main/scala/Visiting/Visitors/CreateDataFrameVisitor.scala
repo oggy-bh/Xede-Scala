@@ -4,8 +4,11 @@ import Visiting.Components.SourceConfigVisitor
 import Visiting.Configurations._
 import org.apache.commons.io.FilenameUtils
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
-import org.apache.spark.sql.{DataFrame, DataFrameReader, Row, SparkSession}
+import org.apache.spark.sql.{Column, DataFrame, DataFrameReader, Row, SparkSession}
+
+import scala.collection.immutable
 
 case class SourceData(dataframe: Seq[DataframeMetadata])
 
@@ -21,7 +24,7 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
     val optionedReader: DataFrameReader = spark.read
       .option("ignoreLeadingWhiteSpace", value = true) // you need this
       .option("ignoreTrailingWhiteSpace", value = true) // and this
-      .option("delimiter", csvConfig.delimiter)
+      .option("delimiterValue", csvConfig.delimiter)
       .option("header", csvConfig.hasHeader)
       .option("inferSchema", value = false)
       .option("encoding", csvConfig.encoding)
@@ -125,4 +128,29 @@ class CreateDataFrameVisitor(spark: SparkSession) extends SourceConfigVisitor[St
     )
   }
 
+  override def Visit(headerFooterConfig: HeaderFooterSource): String => SourceData = {
+    fileOrDir => {
+      val typeToColumnMap = headerFooterConfig.types
+        .foldLeft(Map.empty[String, Seq[Column]])((tAcc, tCur) => {
+
+          val columns = tCur.columns.foldLeft((Seq.empty[Column], 1))((cAcc, cCur) => {
+            val column = trim(substring(col("value"), cAcc._2, cCur.width)).alias(cCur.name)
+            cAcc.copy(_1 = cAcc._1 :+ column, cCur.width + cAcc._2)
+          })
+
+          tAcc.updated(tCur.delimiterValue, columns._1)
+        })
+
+      val commonDf = spark.read
+        .textFile(fileOrDir)
+        .withColumn("type", substring(col("value"), headerFooterConfig.delimiterIndex, headerFooterConfig.delimiterWidth))
+
+      SourceData(
+        typeToColumnMap.map(x =>
+          DataframeMetadata(commonDf.filter(col("type") === lit(x._1)),
+          Map("sourceName" -> fileOrDir, "type" -> x._1))
+        ).toSeq
+      )
+    }
+  }
 }

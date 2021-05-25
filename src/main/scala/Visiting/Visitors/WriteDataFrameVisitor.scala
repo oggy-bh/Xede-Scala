@@ -1,20 +1,23 @@
 package Visiting.Visitors
 
-import java.time.{LocalDateTime}
-import java.time.format.DateTimeFormatter
-
 import Visiting.Components.TargetConfigVisitor
-import Visiting.Configurations.{HiveTarget, ParquetTarget}
-import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
+import Visiting.Configurations.{HiveTarget, MySaveMode, ParquetTarget}
+import org.apache.commons.io.FilenameUtils
+import org.apache.spark.sql.{SaveMode, SparkSession}
 
-class WriteDataFrameVisitor(val spark: SparkSession) extends TargetConfigVisitor[SourceData => Unit] {
-  override def Visit(config: HiveTarget): DataFrame => Unit = { (df) =>
+case class OutputNames(filename: String, tableName: String)
+
+class WriteDataFrameVisitor(val spark: SparkSession) extends TargetConfigVisitor[DataframeMetadata => Unit] {
+  override def Visit(config: HiveTarget): DataframeMetadata => Unit = { (df) =>
     spark.sql(s"CREATE DATABASE IF NOT EXISTS ${config.hiveDbName} ;")
     spark.sql(s"DROP TABLE IF EXISTS ${config.hiveDbName}.${config.tableName}")
 
-    val parquetDir = config.hiveDir + "\\nppes_parquet"
+    val outputNames: OutputNames = createFromFileSource(df)
 
-    df.write
+    val parquetDir = config.hiveDir + "\\" + outputNames.filename
+
+    df.dataFrame
+      .write
       .mode(SaveMode.Overwrite)
       .parquet(parquetDir)
 
@@ -40,13 +43,26 @@ class WriteDataFrameVisitor(val spark: SparkSession) extends TargetConfigVisitor
     }
   }
 
-  override def Visit(config: ParquetTarget): SourceData => Unit = { df =>
-    val format = DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm_ss") // todo: what's the convention here?
-    val parquetDir = s"${config.parquetDir}\\${LocalDateTime.now.format(format)}\\${df.outputFilename}.parquet"
+  override def Visit(config: ParquetTarget): DataframeMetadata => Unit = { df =>
+    val outputFilename = createFromFileSource(df).filename
 
-    df.write
-      .mode(SaveMode.Overwrite)
-      .option("compression", "gzip")
+    val parquetDir = s"${config.parquetDir}\\${outputFilename}"
+
+    df.dataFrame
+      .write
+      .mode(MySaveMode.toJavaEquivalent(config.saveMode))
+      .options(config.options)
       .parquet(parquetDir)
+  }
+
+  private def createFromFileSource(dfm: DataframeMetadata): OutputNames = {
+      val outputFilename = ReplaceTokens(dfm.tokens("outputMask"), dfm.tokens.updated("baseName", FilenameUtils.getBaseName(dfm.tokens("sourceName"))))
+      OutputNames(outputFilename, outputFilename)
+  }
+
+  private def ReplaceTokens(source: String, tokens: Map[String, String]): String = {
+    tokens.foldLeft(source)((acc, cur) => {
+      acc.replace("{" + cur._1 + "}", cur._2)
+    })
   }
 }

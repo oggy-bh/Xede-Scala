@@ -2,7 +2,7 @@
   <configuration default="false" name="Run with test args" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="xede.Xede" />
     <module name="xede-scala" />
-    <option name="PROGRAM_PARAMETERS" value="http://127.0.0.1:8000/csv_2_hive_1.json C:\dev\testdata\nppes\npidata_pfile_20201005-20201011.csv" />
+    <option name="PROGRAM_PARAMETERS" value="http://127.0.0.1:8000/HeaderFoot_2_HIVE.json C:\dev\testdata\all" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="xede-scala.*" />
